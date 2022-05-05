@@ -248,6 +248,9 @@ func (o *{{classname}}) Unset{{name}}() {
 {{/required}}
 {{/vars}}
 func (o {{classname}}) MarshalJSON() ([]byte, error) {
+    if err := o.validate(); err != nil {
+        return nil, err
+    }
 	toSerialize := {{#isArray}}make([]interface{}, len(o.Items)){{/isArray}}{{^isArray}}map[string]interface{}{}{{/isArray}}
 	{{#parent}}
 	{{^isMap}}
@@ -412,8 +415,37 @@ func (o *{{{classname}}}) UnmarshalJSON(bytes []byte) (err error) {
 {{/isAdditionalPropertiesTrue}}
 {{#isArray}}
 func (o *{{{classname}}}) UnmarshalJSON(bytes []byte) (err error) {
-	return json.Unmarshal(bytes, &o.Items)
+	if err = json.Unmarshal(bytes, &o.Items); err != nil {
+        return err
+    }
+    return o.validate()
 }
 
 {{/isArray}}
+{{^isArray}}
+{{^isAdditionalPropertiesTrue}}
+func (o *{{{classname}}}) UnmarshalJSON(bytes []byte) (err error) {
+    type {{{classname}}}ForUnmarshal {{{classname}}}
+    var v {{{classname}}}ForUnmarshal
+    if err = json.Unmarshal(bytes, &v); err != nil {
+        return err
+    }
+    *o = {{{classname}}}(v)
+    return o.validate()
+}
+
+{{/isAdditionalPropertiesTrue}}
+{{/isArray}}
+func (o *{{{classname}}}) validate() error {
+{{#vars}}
+{{#hasValidation}}
+    {
+        v := o.Get{{name}}()
+{{>model_validate}}
+    }
+{{/hasValidation}}
+{{/vars}}
+    return nil
+}
+
 {{>nullable_model}}

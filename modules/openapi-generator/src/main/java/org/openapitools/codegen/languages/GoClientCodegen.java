@@ -40,6 +40,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.*;
+import java.util.function.Predicate;
 
 import static org.openapitools.codegen.utils.StringUtils.camelize;
 
@@ -437,21 +438,32 @@ public class GoClientCodegen extends AbstractGoCodegen {
                 }
             }
 
+            Set<String> imported = new TreeSet<>();
             // additional import for different cases
             // oneOf
             if (model.oneOf != null && !model.oneOf.isEmpty()) {
-                imports.add(createMapping("import", "fmt"));
+                imported.add("fmt");
             }
 
             // anyOf
             if (model.anyOf != null && !model.anyOf.isEmpty()) {
-                imports.add(createMapping("import", "fmt"));
+                imported.add("fmt");
+            }
+
+            if (existsInline(model, (property) -> property.pattern != null && !property.pattern.isEmpty())) {
+                imported.add("regexp");
+            }
+            if (existsInline(model, (property) -> property.hasValidation)) {
+                imported.add("fmt");
             }
 
             // additionalProperties: true and parent
             if (model.isAdditionalPropertiesTrue && model.parent != null && Boolean.FALSE.equals(model.isMap)) {
-                imports.add(createMapping("import", "reflect"));
-                imports.add(createMapping("import", "strings"));
+                imported.add("reflect");
+                imported.add("strings");
+            }
+            for (String i : imported) {
+                imports.add(createMapping("import", i));
             }
         }
         return objs;
@@ -488,6 +500,16 @@ public class GoClientCodegen extends AbstractGoCodegen {
         }
 
         return objs;
+    }
+
+    private boolean existsInline(CodegenModel model, Predicate<CodegenProperty> predicate) {
+        if (model.vars != null)
+            for (CodegenProperty property : model.vars) {
+                if (predicate.test(property)) {
+                    return true;
+                }
+            }
+        return model.getItems() != null && predicate.test(model.getItems());
     }
 
     private String constructExampleCode(CodegenParameter codegenParameter, HashMap<String, CodegenModel> modelMaps, HashMap<String, ArrayList<Integer>> processedModelMap) {

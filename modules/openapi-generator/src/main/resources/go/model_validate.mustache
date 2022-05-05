@@ -1,0 +1,61 @@
+    {{!string}}
+    {{#maxLength}}
+        if len(v) > {{{maxLength}}} {
+            return fmt.Errorf("too long: %s > %d", v, {{{maxLength}}})
+        }
+    {{/maxLength}}
+    {{#minLength}}
+        if len(v) < {{{minLength}}} {
+            return fmt.Errorf("too short: %s < %d", v, {{{minLength}}})
+        }
+    {{/minLength}}
+    {{#pattern}}
+        // TODO: precompile pattern
+        if !regexp.MustCompile(`{{{pattern}}}`).MatchString(v) {
+            return fmt.Errorf("invalid value: %s", v)
+        }
+    {{/pattern}}
+    {{!array}}
+    {{#maxItems}}
+        if len(v) > {{{maxItems}}} {
+            return fmt.Errorf("too many items: %d > %d", len(v), {{{maxItems}}})
+        }
+    {{/maxItems}}
+    {{#minItems}}
+        if len(v) < {{{minItems}}} {
+            return fmt.Errorf("too few items: %d < %d", len(v), {{{minItems}}})
+        }
+    {{/minItems}}
+    {{!TODO:uniqueItems}}
+    {{!number}}
+    {{#maximum}}
+        if v {{#exclusiveMaximum}}>{{/exclusiveMaximum}}{{^exclusiveMaximum}}>={{/exclusiveMaximum}} {{{maximum}}} {
+            return fmt.Errorf("too large: %d > %d", v, {{{maximum}}})
+        }
+    {{/maximum}}
+    {{#minimum}}
+        if v {{#exclusiveMinimum}}>{{/exclusiveMinimum}}{{^exclusiveMinimum}}>={{/exclusiveMinimum}} {{{minimum}}} {
+            return fmt.Errorf("too small: %d < %d", v, {{{minimum}}})
+        }
+    {{/minimum}}
+    {{#multipleOf}}
+        if v % {{{multipleOf}}} != 0 {
+            return fmt.Errorf("not a multiple of %d: %d", {{{multipleOf}}}, v)
+        }
+    {{/multipleOf}}
+    {{#items}}
+        {{#hasValidation}}
+        for _, v := range v {
+            {{>model_validate}}
+        }
+        {{/hasValidation}}
+    {{/items}}
+    {{#vars}}
+        {{#hasValidation}}
+            {
+            v := o.{{{name}}}
+            {{>model_validate}}
+            }
+        {{/hasValidation}}
+    {{/vars}}
+    {{!TODO:validate ref}}
